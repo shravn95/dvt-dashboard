@@ -5,6 +5,7 @@ Needs visualizations.py and CollegeMsg.txt.gz in the same folder.
 import os
 import pandas as pd
 import streamlit as st
+import plotly.express as px
 import visualizations as viz
 
 st.set_page_config(page_title="CollegeMsg Data Detective", layout="wide")
@@ -134,3 +135,35 @@ st.markdown(
 )
 st.caption("Edit the wording of findings and recommendations to match your team's own interpretation "
            "after you review the charts.")
+
+
+# ----------------------------------------- wrong visualization challenge ---
+st.subheader("Wrong Visualization Challenge: Daily Message Activity")
+daily_counts = df.groupby("date").size().rename("messages").reset_index().sort_values("date")
+
+if daily_counts.empty:
+    st.info("No daily message data available for the selected filters.")
+else:
+    wv1, wv2 = st.columns(2)
+
+    fig_bar = px.bar(daily_counts, x="date", y="messages",
+                     title="Appropriate: Daily Message Volume",
+                     labels={"date": "Date", "messages": "Number of messages"})
+    wv1.plotly_chart(fig_bar, width="stretch")
+
+    fig_pie = px.pie(daily_counts, values="messages", names="date",
+                     title="Misleading: Daily Message Proportions")
+    fig_pie.update_traces(textposition="inside", textinfo="percent",
+                          hovertemplate="%{label}<br>Messages: %{value}<br>%{percent}<extra></extra>")
+    wv2.plotly_chart(fig_pie, width="stretch")
+
+    st.markdown(
+        "**Why the bar chart works and the pie chart doesn't:**\n\n"
+        "- The **bar chart** maps each date to a distinct bar whose height encodes the message count, "
+        "making it easy to spot the activity spike and compare day-to-day changes over time.\n"
+        "- The **pie chart** uses the exact same data but encodes each day as an angular slice. "
+        "With many dates the slices become too thin to distinguish, chronological order is lost, "
+        "and comparing similar-sized slices is perceptually difficult.\n"
+        "- Both charts use identical data — the difference is entirely in the effectiveness of the "
+        "visual encoding for this type of temporal comparison."
+    )
