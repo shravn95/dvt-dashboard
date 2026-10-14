@@ -165,10 +165,35 @@ def fig_network(df, stats, top_n=50, seed=42):
 # ------------------------------------------------------------- Q5 / V5 ----
 def fig_reply_hist(df):
     hrs = reply_times(df)
-    fig = px.histogram(x=hrs, nbins=80, log_x=True,
-                       title="Q5: Time until reply (hours, log scale)",
-                       labels={"x": "Reply time (hours)", "count": "Messages"})
-    fig.update_layout(xaxis_title="Reply time (hours, log scale)", yaxis_title="Messages")
+    if len(hrs) == 0:
+        fig = go.Figure()
+        fig.update_layout(
+            title="Q5: Time until reply (hours, log scale)",
+            xaxis_title="Reply time (hours, log scale)",
+            yaxis_title="Number of messages",
+            annotations=[dict(text="No valid reply-time data for the selected filters",
+                              xref="paper", yref="paper", x=0.5, y=0.5,
+                              showarrow=False, font=dict(size=16))]
+        )
+        return fig
+    # Work around Plotly bug (plotly/plotly.py#2899, plotly/plotly.js#6200):
+    # px.histogram with log_x=True computes linear bins starting at 0,
+    # and log(0) causes all bars to disappear.  Manually compute
+    # log-spaced bins instead.
+    log_bins = np.logspace(np.log10(hrs.min()), np.log10(hrs.max()), 81)
+    counts, bin_edges = np.histogram(hrs, bins=log_bins)
+    fig = go.Figure(go.Bar(
+        x=bin_edges[:-1], y=counts,
+        width=np.diff(bin_edges), offset=0,
+        marker_color="#636efa",
+        hovertemplate="Reply time: %{x:.2f} hours<br>Count: %{y}<extra></extra>",
+    ))
+    fig.update_layout(
+        title="Q5: Time until reply (hours, log scale)",
+        xaxis_title="Reply time (hours, log scale)",
+        yaxis_title="Number of messages",
+        xaxis_type="log", bargap=0.05,
+    )
     return fig
 
 
